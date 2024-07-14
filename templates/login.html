@@ -19,6 +19,9 @@
                 </div>
                 <div class="input-box">
                     {{ form.password }}
+                    <span class="eye" onclick="togglePassword()">
+                        <i id="eye-icon" class="fa fa-eye"></i>
+                    </span>
                 </div>
                 <button type="submit" class="btn">Login</button>
             </form>
@@ -77,7 +80,23 @@
         <span style="--i:47;"></span>
         <span style="--i:48;"></span>
         <span style="--i:49;"></span>
-        <!-- Add more spans for additional animation -->
+        <!-- (Same as before) -->
     </div>
+    <script src="https://kit.fontawesome.com/a076d05399.js"></script>
+    <script>
+        function togglePassword() {
+            const passwordField = document.querySelector('input[type="password"]');
+            const eyeIcon = document.getElementById('eye-icon');
+            if (passwordField.type === "password") {
+                passwordField.type = "text";
+                eyeIcon.classList.remove("fa-eye");
+                eyeIcon.classList.add("fa-eye-slash");
+            } else {
+                passwordField.type = "password";
+                eyeIcon.classList.remove("fa-eye-slash");
+                eyeIcon.classList.add("fa-eye");
+            }
+        }
+    </script>
 </body>
 </html>

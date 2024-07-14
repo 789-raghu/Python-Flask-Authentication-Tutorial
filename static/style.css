@@ -91,6 +91,14 @@ h2 {
     padding: 0 6px;
     color: #0ef;
 }
+.input-box .eye {
+    position: absolute;
+    right: 20px;
+    top: 50%;
+    transform: translateY(-50%);
+    cursor: pointer;
+    color: #fff;
+}
 .forgot-pass {
     margin: -15px 0 10px;
     text-align: center;

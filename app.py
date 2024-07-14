@@ -28,6 +28,15 @@ class User(db.Model, UserMixin):
     username = db.Column(db.String(20), unique=True, nullable=False)
     password = db.Column(db.String(80), nullable=False)
 
+class DataForTraining(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    aluminium = db.Column(db.Float, nullable=False)
+    chromium = db.Column(db.Float, nullable=False)
+    cobalt = db.Column(db.Float, nullable=False)
+    copper = db.Column(db.Float, nullable=False)
+    lead = db.Column(db.Float, nullable=False)
+    manganese = db.Column(db.Float, nullable=False)
+
 
 class RegisterForm(FlaskForm):
     username = StringField('Username', validators=[InputRequired(), Length(min=4, max=20)], render_kw={"placeholder": "Username"})

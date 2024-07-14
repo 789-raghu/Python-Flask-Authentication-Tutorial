@@ -1,82 +1,237 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard</title>
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&display=swap">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: 'Poppins', sans-serif;
-        }
-
-        body, html {
-            height: 100%;
-            margin: 0;
+        body {
+            background-color: #1f293a; /* Matching login page background color */
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: #fff; /* Matching login page text color */
             display: flex;
             justify-content: center;
             align-items: center;
-            background: #1f293a;
-            color: white;
+            min-height: 100vh;
+            position: relative; /* Added position relative to body */
         }
-
-        .container {
-            position: relative;
-            width: 400px;
-            padding: 20px;
-            background: transparent;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
-            border-radius: 10px;
+        .custom-container {
+            max-width: 800px;
+            margin: 50px auto; /* Increased top margin for spacing */
+            padding-top: 20px; /* Reduced padding-top */
+            backdrop-filter: blur(50px) brightness(50%);
+        }
+        .dashboard-heading {
             text-align: center;
+            margin-bottom: 30px;
         }
-
-        h1 {
-            font-size: 2em;
-            color: #0ef;
-            margin-bottom: 20px;
+        .custom-btn {
+            font-size: 1.2rem;
+            margin-bottom: 15px;
+            border-radius: 10px;
+            transition: all 0.3s ease;
+            position: relative;
+            z-index: 1;
+            background-color: #0ef; /* Custom primary button color */
+            border-color: #0ef; /* Custom primary button border color */
+            color: #1f293a; /* Custom primary button text color */
         }
-
-        a {
-            font-size: 1em;
-            color: #0ef;
-            text-decoration: none;
-            font-weight: 600;
+        .custom-btn:hover {
+            background-color: #0cf; /* Darker background on hover */
+            border-color: #0cf; /* Darker border on hover */
+            transform: translateY(-3px);
         }
-
-        a:hover {
-            text-decoration: underline;
+        .overlay {
+            position: fixed;
+            top: 50%; /* Center vertically */
+            left: 50%; /* Center horizontally */
+            transform: translate(-50%, -50%); /* Center the overlay */
+            width: 80%; /* Set width as needed */
+            max-width: 800px; /* Maximum width */
+            background-color: rgba(0, 0, 0, 0.5); /* Semi-transparent background */
+            backdrop-filter: blur(10px) brightness(80%); /* Blurred effect for glassy look */
+            display: none;
+            z-index: 2;
+            transition: all 0.3s ease;
+            border-radius: 10px; /* Rounded corners */
+            padding: 20px; /* Padding for content */
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.2); /* Box shadow for depth */
         }
-
-        .header {
+        .overlay.active {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            animation: fadeIn 0.3s ease forwards;
+        }
+        .overlay.minimized {
+            width: 200px;
+            height: 50px;
+            overflow: hidden;
+            animation: minimize 0.3s ease forwards;
+        }
+        .overlay.maximized {
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            transform: none;
+            border-radius: 0;
+            animation: maximize 0.3s ease forwards;
+        }
+        .overlay-content {
+            background-color: #fff;
+            border-radius: 10px; /* Rounded corners */
+            text-align: center;
+            color: #1f293a; /* Overlay content text color */
+            max-height: calc(100vh - 100px); /* Maximum height of the overlay */
+            overflow-y: auto; /* Enable scrolling if content exceeds height */
+            transition: all 0.3s ease;
+        }
+        .overlay-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            padding: 10px 20px;
+            background-color: #ddd; /* Header background color */
+            border-radius: 10px 10px 0 0; /* Rounded corners */
+            color: #333; /* Header text color */
+        }
+        .overlay-header h3 {
+            margin: 0;
+            font-size: 1.5rem;
+        }
+        .overlay-header .window-controls {
+            display: flex;
+            gap: 10px;
+        }
+        .overlay-header .window-controls .control-btn {
+            cursor: pointer;
+            font-size: 1.2rem;
+            color: #555; /* Button color */
+        }
+        .overlay-footer {
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            margin-top: 10px;
+            padding: 10px 20px;
+            background-color: #ddd; /* Footer background color */
+            border-radius: 0 0 10px 10px; /* Rounded corners */
+        }
+        .overlay-footer .btn {
+            margin-left: 10px;
+        }
+        .logout-btn {
+            background-color: #ffc107;
+            border-color: #ffc107;
+            color: #212529;
+        }
+        .logout-btn:hover {
+            background-color: #e0a800;
+            border-color: #d39e00;
+            color: #212529;
+        }
+        .username {
             position: absolute;
-            top: 20px;
-            right: 20px;
-            font-size: 1em;
-            color: #0ef;
-            text-decoration: none;
-            font-weight: 600;
+            top: 20px; /* Adjust top positioning */
+            left: 20px; /* Adjust left positioning */
+            font-size: 2rem;
+            font-weight: bold;
         }
-
-        .header i {
-            margin-right: 8px;
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
         }
-
-        .header a:hover {
-            text-decoration: underline;
+        @keyframes fadeOut {
+            from { opacity: 1; }
+            to { opacity: 0; }
+        }
+        @keyframes minimize {
+            from { width: 80%; height: calc(100vh - 100px); }
+            to { width: 200px; height: 50px; }
+        }
+        @keyframes maximize {
+            from { width: 80%; height: calc(100vh - 100px); top: 50%; left: 50%; transform: translate(-50%, -50%); border-radius: 10px; }
+            to { width: 100%; height: 100%; top: 0; left: 0; transform: none; border-radius: 0; }
         }
     </style>
 </head>
-
 <body>
-        <div class="header">
-            <a href="{{url_for('logout')}}"><i class="fas fa-door-open"></i>logout</a>
-        </div>
-</body>
+    <span class="username">Welcome, {{ current_user.username.split('@')[0] }}!</span>
 
+    <div class="container-fluid bg-light custom-container">
+        <div class="text-center dashboard-heading">
+            <a href="{{ url_for('logout') }}" class="btn btn-warning logout-btn">
+                <i class="fas fa-power-off"></i> Logout
+            </a>
+        </div>
+        <div class="row">
+            <div class="col-md-6">
+                <a href="#" class="btn btn-primary btn-lg btn-block custom-btn" onclick="showOverlay('Data Prediction')">Data Prediction</a>
+                <a href="#" class="btn btn-secondary btn-lg btn-block custom-btn" onclick="showOverlay('Add Data')">Add Data</a>
+            </div>
+            <div class="col-md-6">
+                <a href="#" class="btn btn-success btn-lg btn-block custom-btn" onclick="showOverlay('Retrain Model')">Retrain Model</a>
+                <a href="#" class="btn btn-danger btn-lg btn-block custom-btn" onclick="showOverlay('Preview Data')">Preview Data</a>
+            </div>
+        </div>
+        <div id="overlay" class="overlay">
+            <div class="overlay-content">
+                <div class="overlay-header">
+                    <h3 id="overlay-text">Overlay Title</h3>
+                    <div class="window-controls">
+                        <span class="control-btn minimize-btn" onclick="minimizeOverlay()"><i class="fas fa-window-minimize"></i></span>
+                        <span class="control-btn maximize-btn" onclick="maximizeOverlay()"><i class="fas fa-window-maximize"></i></span>
+                        <span class="control-btn close-btn" onclick="hideOverlay()"><i class="fas fa-window-close"></i></span>
+                    </div>
+                </div>
+                <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam ut risus a magna elementum varius.</p>
+                <div class="overlay-footer">
+                    <button class="btn btn-light" onclick="hideOverlay()">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.2/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <script>
+        function showOverlay(text) {
+            const overlay = document.getElementById('overlay');
+            document.getElementById('overlay-text').innerText = text;
+            overlay.classList.add('active');
+            overlay.classList.remove('minimized', 'maximized');
+        }
+
+        function hideOverlay() {
+            const overlay = document.getElementById('overlay');
+            overlay.classList.remove('active');
+            overlay.style.animation = 'fadeOut 0.3s ease forwards';
+            setTimeout(() => {
+                overlay.style.animation = '';
+            }, 300);
+        }
+
+        function minimizeOverlay() {
+            const overlay = document.getElementById('overlay');
+            if (overlay.classList.contains('maximized')) {
+                overlay.classList.add('minimized');
+                overlay.classList.remove('maximized');
+            }
+        }
+
+        function maximizeOverlay() {
+            const overlay = document.getElementById('overlay');
+            if (!overlay.classList.contains('maximized')) {
+                overlay.classList.add('maximized');
+                overlay.classList.remove('minimized');
+            }
+        }
+    </script>
+</body>
 </html>
