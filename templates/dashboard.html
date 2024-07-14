@@ -67,28 +67,13 @@
             animation: fadeIn 0.3s ease forwards;
         }
         .overlay.minimized {
-            width: 200px;
-            height: 50px;
-            overflow: hidden;
             animation: minimize 0.3s ease forwards;
         }
         .overlay.maximized {
-            width: 100%;
-            height: 100%;
-            top: 0;
-            left: 0;
-            transform: none;
-            border-radius: 0;
             animation: maximize 0.3s ease forwards;
         }
-        .overlay-content {
-            background-color: #fff;
-            border-radius: 10px; /* Rounded corners */
-            text-align: center;
-            color: #1f293a; /* Overlay content text color */
-            max-height: calc(100vh - 100px); /* Maximum height of the overlay */
-            overflow-y: auto; /* Enable scrolling if content exceeds height */
-            transition: all 0.3s ease;
+        .overlay .overlay-content {
+            width: 100%; /* Full width for content */
         }
         .overlay-header {
             display: flex;
@@ -129,6 +114,10 @@
             background-color: #ffc107;
             border-color: #ffc107;
             color: #212529;
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            z-index: 3;
         }
         .logout-btn:hover {
             background-color: #e0a800;
@@ -152,31 +141,37 @@
         }
         @keyframes minimize {
             from { width: 80%; height: calc(100vh - 100px); }
-            to { width: 200px; height: 50px; }
+            to { width: 300px; height: 100px; }
         }
         @keyframes maximize {
             from { width: 80%; height: calc(100vh - 100px); top: 50%; left: 50%; transform: translate(-50%, -50%); border-radius: 10px; }
             to { width: 100%; height: 100%; top: 0; left: 0; transform: none; border-radius: 0; }
         }
+        @keyframes restore {
+            from { width: 100%; height: 100%; top: 0; left: 0; transform: none; border-radius: 0; }
+            to { width: 80%; height: calc(100vh - 100px); top: 50%; left: 50%; transform: translate(-50%, -50%); border-radius: 10px; }
+        }
     </style>
 </head>
 <body>
     <span class="username">Welcome, {{ current_user.username.split('@')[0] }}!</span>
-
+    <div class="text-center dashboard-heading">
+        <a href="{{ url_for('logout') }}" class="btn btn-warning logout-btn">
+            <i class="fas fa-power-off"></i> Logout
+        </a>
+    </div>
     <div class="container-fluid bg-light custom-container">
-        <div class="text-center dashboard-heading">
-            <a href="{{ url_for('logout') }}" class="btn btn-warning logout-btn">
-                <i class="fas fa-power-off"></i> Logout
-            </a>
-        </div>
         <div class="row">
             <div class="col-md-6">
-                <a href="#" class="btn btn-primary btn-lg btn-block custom-btn" onclick="showOverlay('Data Prediction')">Data Prediction</a>
-                <a href="#" class="btn btn-secondary btn-lg btn-block custom-btn" onclick="showOverlay('Add Data')">Add Data</a>
+                <label for="fileUpload" class="btn btn-info btn-lg btn-block custom-btn">
+                    Upload Data
+                    <input type="file" id="fileUpload" name="fileUpload" style="display: none;">
+                </label>
+                <a href="#" class="btn btn-secondary btn-lg btn-block custom-btn" onclick="showOverlay('Train')">Train the data</a>
             </div>
             <div class="col-md-6">
-                <a href="#" class="btn btn-success btn-lg btn-block custom-btn" onclick="showOverlay('Retrain Model')">Retrain Model</a>
-                <a href="#" class="btn btn-danger btn-lg btn-block custom-btn" onclick="showOverlay('Preview Data')">Preview Data</a>
+                <a href="#" class="btn btn-primary btn-lg btn-block custom-btn" onclick="showOverlay('Data Prediction')">Data Prediction</a>
+                <a href="#" class="btn btn-danger btn-lg btn-block custom-btn" onclick="showPreviewData()">Preview Data</a>
             </div>
         </div>
         <div id="overlay" class="overlay">
@@ -184,54 +179,110 @@
                 <div class="overlay-header">
                     <h3 id="overlay-text">Overlay Title</h3>
                     <div class="window-controls">
-                        <span class="control-btn minimize-btn" onclick="minimizeOverlay()"><i class="fas fa-window-minimize"></i></span>
-                        <span class="control-btn maximize-btn" onclick="maximizeOverlay()"><i class="fas fa-window-maximize"></i></span>
-                        <span class="control-btn close-btn" onclick="hideOverlay()"><i class="fas fa-window-close"></i></span>
+                        <span class="control-btn" onclick="minimizeOverlay()"><i class="fas fa-window-minimize"></i></span>
+                        <span class="control-btn" onclick="maximizeOverlay()"><i class="fas fa-window-maximize"></i></span>
+                        <span class="control-btn" onclick="hideOverlay()"><i class="fas fa-times"></i></span>
                     </div>
                 </div>
-                <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam ut risus a magna elementum varius.</p>
+                <form id="dataPredictionForm">
+                    <div id="predictionInputs" style="display: none;">
+                        <div class="form-group">
+                            <label for="startDate">Start Date:</label>
+                            <input type="month" class="form-control" id="startDate" name="startDate">
+                        </div>
+                        <div class="form-group">
+                            <label for="endDate">End Date:</label>
+                            <input type="month" class="form-control" id="endDate" name="endDate">
+                        </div>
+                        <div class="form-group">
+                            <label for="element">Element:</label>
+                            <select class="form-control" id="element" name="element">
+                                <option value="aluminium">Aluminium</option>
+                                <option value="chromium">Chromium</option>
+                                <option value="cobalt">Cobalt</option>
+                                <option value="copper">Copper</option>
+                                <option value="lead">Lead</option>
+                                <option value="manganese">Manganese</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div id="trainInputs" style="display: none;">
+                        <div class="form-group">
+                            <label for="trainData">Train Data:</label>
+                            <input type="text" class="form-control" id="trainData" name="trainData">
+                        </div>
+                    </div>
+                </form>
                 <div class="overlay-footer">
-                    <button class="btn btn-light" onclick="hideOverlay()">Close</button>
+                    <button type="button" class="btn btn-primary" onclick="processForm()">Submit</button>
+                    <button type="button" class="btn btn-danger" onclick="hideOverlay()">Cancel</button>
                 </div>
             </div>
         </div>
     </div>
 
-    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.2/dist/umd/popper.min.js"></script>
-    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
     <script>
-        function showOverlay(text) {
+        function showOverlay(type) {
             const overlay = document.getElementById('overlay');
-            document.getElementById('overlay-text').innerText = text;
             overlay.classList.add('active');
-            overlay.classList.remove('minimized', 'maximized');
+            document.getElementById('overlay-text').innerText = type;
+            if (type === 'Data Prediction') {
+                document.getElementById('predictionInputs').style.display = 'block';
+                document.getElementById('trainInputs').style.display = 'none';
+            } else if (type === 'Train') {
+                document.getElementById('trainInputs').style.display = 'block';
+                document.getElementById('predictionInputs').style.display = 'none';
+            }
         }
 
         function hideOverlay() {
             const overlay = document.getElementById('overlay');
             overlay.classList.remove('active');
-            overlay.style.animation = 'fadeOut 0.3s ease forwards';
-            setTimeout(() => {
-                overlay.style.animation = '';
-            }, 300);
+            document.getElementById('dataPredictionForm').reset();
         }
 
         function minimizeOverlay() {
             const overlay = document.getElementById('overlay');
-            if (overlay.classList.contains('maximized')) {
-                overlay.classList.add('minimized');
-                overlay.classList.remove('maximized');
-            }
+            overlay.classList.add('minimized');
         }
 
         function maximizeOverlay() {
             const overlay = document.getElementById('overlay');
-            if (!overlay.classList.contains('maximized')) {
-                overlay.classList.add('maximized');
-                overlay.classList.remove('minimized');
+            overlay.classList.add('maximized');
+        }
+
+        $(document).ready(function() {
+            // Function to fetch and display preview data
+            function showPreviewData() {
+                fetch('/preview_data')
+                    .then(response => response.json())
+                    .then(data => {
+                        let html = '<ul>';
+                        data.forEach(item => {
+                            html += `<li>${item.date}: ${item.value}</li>`;
+                        });
+                        html += '</ul>';
+                        $('#dataDisplay').html(html);
+                    })
+                    .catch(error => {
+                        console.error('Error fetching data:', error);
+                        $('#dataDisplay').html('<p>Error fetching data. Please try again later.</p>');
+                    });
             }
+
+            // Call showPreviewData() to fetch and display data on page load
+            showPreviewData();
+        });
+
+        function processForm() {
+            // Implement form processing logic here
+            alert('Implement form processing logic');
+            hideOverlay();
         }
     </script>
+
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.4/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
 </body>
 </html>
