@@ -18,17 +18,14 @@ login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'login'
 
-
 @login_manager.user_loader
 def load_user(user_id):
     return User.query.get(int(user_id))
-
 
 class User(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(20), unique=True, nullable=False)
     password = db.Column(db.String(80), nullable=False)
-
 
 class DataForTraining(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -38,7 +35,6 @@ class DataForTraining(db.Model):
     copper = db.Column(db.Float, nullable=False)
     lead = db.Column(db.Float, nullable=False)
     manganese = db.Column(db.Float, nullable=False)
-
 
 class RegisterForm(FlaskForm):
     username = StringField('Username', validators=[InputRequired(), Length(min=4, max=20)], render_kw={"placeholder": "Username"})
@@ -50,12 +46,10 @@ class RegisterForm(FlaskForm):
         if user:
             raise ValidationError('That username is already taken. Please choose a different one.')
 
-
 class LoginForm(FlaskForm):
     username = StringField('Username', validators=[InputRequired(), Length(min=4, max=20)], render_kw={"placeholder": "Username"})
     password = PasswordField('Password', validators=[InputRequired(), Length(min=8, max=20)], render_kw={"placeholder": "Password"})
     submit = SubmitField('Login')
-
 
 class AddDataForm(FlaskForm):
     aluminium = FloatField('Aluminium', validators=[DataRequired()])
@@ -66,27 +60,24 @@ class AddDataForm(FlaskForm):
     manganese = FloatField('Manganese', validators=[DataRequired()])
     submit = SubmitField('Add Data')
 
-
 @app.route('/', methods=['GET', 'POST'])
 def login():
     form = LoginForm()
     if form.validate_on_submit():
         user = User.query.filter_by(username=form.username.data).first()
-        if user:
-            if bcrypt.check_password_hash(user.password, form.password.data):
-                login_user(user)
-                return redirect(url_for('dashboard'))
-            else:
-                flash('Invalid password. Please try again.', 'danger')
-        else:
-            flash('Username not found. Please register.', 'danger')
+        if user and bcrypt.check_password_hash(user.password, form.password.data):
+            login_user(user)
+            return redirect(url_for('dashboard'))
+        flash('Invalid username or password. Please try again.', 'danger')
     return render_template('login.html', form=form)
-
 
 @app.route('/dashboard', methods=['GET', 'POST'])
 @login_required
 def dashboard():
     form = AddDataForm()
+    # Fetch all data from the database to display in the preview
+    all_data = DataForTraining.query.all()
+
     if form.validate_on_submit():
         new_data = DataForTraining(
             aluminium=form.aluminium.data,
@@ -100,8 +91,8 @@ def dashboard():
         db.session.commit()
         flash('Data added successfully!', 'success')
         return redirect(url_for('dashboard'))
-    return render_template('dashboard.html', form=form)
 
+    return render_template('dashboard.html', form=form, all_data=all_data)
 
 @app.route('/logout')
 @login_required
@@ -109,7 +100,6 @@ def logout():
     logout_user()
     flash('Logged out successfully.', 'info')
     return redirect(url_for('login'))
-
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
@@ -122,31 +112,29 @@ def register():
             db.session.commit()
             flash('Registration successful! You can now log in.', 'success')
             return redirect(url_for('login'))
-        except:
+        except Exception as e:
             db.session.rollback()
-            flash('Error occurred during registration. Please try again later.', 'danger')
+            flash(f'Error occurred during registration: {str(e)}', 'danger')
     return render_template('register.html', form=form)
-
 
 @app.route('/fetch_training_data', methods=['GET'])
 @login_required
 def fetch_training_data():
     try:
         data = DataForTraining.query.all()
-        data_dict = []
-        for item in data:
-            data_dict.append({
+        data_dict = [
+            {
                 'aluminium': item.aluminium,
                 'chromium': item.chromium,
                 'cobalt': item.cobalt,
                 'copper': item.copper,
                 'lead': item.lead,
                 'manganese': item.manganese
-            })
+            } for item in data
+        ]
         return jsonify(data_dict)
     except Exception as e:
         return str(e), 500
-
 
 @app.route('/upload_data', methods=['POST'])
 @login_required
@@ -163,8 +151,19 @@ def upload_data():
 
     if file:
         try:
+            # Check if the file is a CSV
+            if not file.filename.endswith('.csv'):
+                flash('Invalid file format. Please upload a CSV file.', 'danger')
+                return redirect(request.url)
+
             # Read CSV file into a Pandas DataFrame
             df = pd.read_csv(file)
+
+            # Check for required columns
+            required_columns = ['aluminium', 'chromium', 'cobalt', 'copper', 'lead', 'manganese']
+            if not all(col in df.columns for col in required_columns):
+                flash('CSV file is missing one or more required columns.', 'danger')
+                return redirect(request.url)
 
             # Iterate through each row and save to database
             for index, row in df.iterrows():
@@ -180,19 +179,18 @@ def upload_data():
 
             db.session.commit()
             flash('File uploaded and data saved successfully to data.db', 'success')
-            return redirect(url_for('dashboard'))  # Redirect to dashboard or any other relevant route
+            return redirect(url_for('dashboard'))
 
         except Exception as e:
+            db.session.rollback()
             flash(f'Error uploading file: {str(e)}', 'danger')
             return redirect(request.url)
 
     return redirect(request.url)
 
-
 @app.shell_context_processor
 def make_shell_context():
     return {'db': db, 'User': User, 'DataForTraining': DataForTraining}
-
 
 if __name__ == "__main__":
     app.run(debug=True)

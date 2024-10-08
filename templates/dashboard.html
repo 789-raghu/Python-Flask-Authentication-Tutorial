@@ -5,24 +5,38 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard</title>
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
-    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <style>
         body {
-            background-color: #1f293a; /* Matching login page background color */
+            background: url('../static/image.jpg') no-repeat center center fixed;
+            background-size: cover;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            color: #fff; /* Matching login page text color */
-            display: flex;
-            justify-content: center;
-            align-items: center;
+            color: #343a40;
+            position: relative;
             min-height: 100vh;
-            position: relative; /* Added position relative to body */
+            overflow: hidden;
+            opacity: 0.9;
+        }
+        .header {
+            position: absolute;
+            top: 20px;
+            right: 20px;
         }
         .custom-container {
             max-width: 800px;
-            margin: 50px auto; /* Increased top margin for spacing */
-            padding-top: 20px; /* Reduced padding-top */
-            backdrop-filter: blur(50px) brightness(50%);
+            margin: 20px auto; /* Center horizontally and add margin to top */
+            padding: 20px;
+            background-color: rgba(255, 255, 255, 0.8);
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            backdrop-filter: blur(10px);
+        }
+        .row {
+            margin-bottom: 20px; /* Add margin for spacing */
+        }
+        .navbar {
+            margin-bottom: 30px;
+            background-color: rgba(255, 255, 255, 0.263); /* Change navbar background color to white */
         }
         .dashboard-heading {
             text-align: center;
@@ -33,139 +47,107 @@
             margin-bottom: 15px;
             border-radius: 10px;
             transition: all 0.3s ease;
-            position: relative;
-            z-index: 1;
-            background-color: #0ef; /* Custom primary button color */
-            border-color: #0ef; /* Custom primary button border color */
-            color: #1f293a; /* Custom primary button text color */
         }
         .custom-btn:hover {
-            background-color: #0cf; /* Darker background on hover */
-            border-color: #0cf; /* Darker border on hover */
-            transform: translateY(-3px);
+            transform: translateY(-3px) scale(1.05);
+        }
+        .toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 11;
         }
         .overlay {
+            display: none; /* Hide overlay by default */
             position: fixed;
-            top: 50%; /* Center vertically */
-            left: 50%; /* Center horizontally */
-            transform: translate(-50%, -50%); /* Center the overlay */
-            width: 80%; /* Set width as needed */
-            max-width: 800px; /* Maximum width */
-            background-color: rgba(0, 0, 0, 0.5); /* Semi-transparent background */
-            backdrop-filter: blur(10px) brightness(80%); /* Blurred effect for glassy look */
-            display: none;
-            z-index: 2;
-            transition: all 0.3s ease;
-            border-radius: 10px; /* Rounded corners */
-            padding: 20px; /* Padding for content */
-            box-shadow: 0 0 20px rgba(0, 0, 0, 0.2); /* Box shadow for depth */
-        }
-        .overlay.active {
-            display: flex;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5); /* Background color for overlay */
             justify-content: center;
             align-items: center;
-            animation: fadeIn 0.3s ease forwards;
+            z-index: 10;
         }
-        .overlay.minimized {
-            animation: minimize 0.3s ease forwards;
+        .overlay.active {
+            display: flex; /* Show overlay when active */
         }
-        .overlay.maximized {
-            animation: maximize 0.3s ease forwards;
+        .overlay-content {
+            background: rgba(255, 255, 255, 0.338); /* Change this to solid white for opacity independence */
+            backdrop-filter: blur(10px); /* Keep the blur effect */
+            border-radius: 10px;
+            padding: 20px;
+            position: relative;
+            width: 80%;
+            max-width: 500px;
+            transition: transform 0.3s ease;
         }
-        .overlay .overlay-content {
-            width: 100%; /* Full width for content */
+        .overlay-content h3,
+        .overlay-content span,
+        .overlay-content label,
+        .overlay-content input,
+        .overlay-content select {
+            color: black; /* Set text color to black */
+        }
+        .overlay-content .form-control {
+            background-color: rgba(255, 255, 255, 0.9); /* Ensure form inputs have a solid background */
         }
         .overlay-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 10px;
-            padding: 10px 20px;
-            background-color: #ddd; /* Header background color */
-            border-radius: 10px 10px 0 0; /* Rounded corners */
-            color: #333; /* Header text color */
-        }
-        .overlay-header h3 {
-            margin: 0;
-            font-size: 1.5rem;
-        }
-        .overlay-header .window-controls {
-            display: flex;
-            gap: 10px;
-        }
-        .overlay-header .window-controls .control-btn {
-            cursor: pointer;
-            font-size: 1.2rem;
-            color: #555; /* Button color */
         }
         .overlay-footer {
             display: flex;
-            justify-content: flex-end;
-            align-items: center;
+            justify-content: space-between;
             margin-top: 10px;
-            padding: 10px 20px;
-            background-color: #ddd; /* Footer background color */
-            border-radius: 0 0 10px 10px; /* Rounded corners */
         }
-        .overlay-footer .btn {
-            margin-left: 10px;
+        .minimize-btn, .maximize-btn, .close-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 1.5rem;
         }
-        .logout-btn {
-            background-color: #ffc107;
-            border-color: #ffc107;
-            color: #212529;
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            z-index: 3;
+        .minimized {
+            display: none; /* Hide content when minimized */
         }
-        .logout-btn:hover {
-            background-color: #e0a800;
-            border-color: #d39e00;
-            color: #212529;
-        }
-        .username {
-            position: absolute;
-            top: 20px; /* Adjust top positioning */
-            left: 20px; /* Adjust left positioning */
-            font-size: 2rem;
-            font-weight: bold;
-        }
-        @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
-        }
-        @keyframes fadeOut {
-            from { opacity: 1; }
-            to { opacity: 0; }
-        }
-        @keyframes minimize {
-            from { width: 80%; height: calc(100vh - 100px); }
-            to { width: 300px; height: 100px; }
-        }
-        @keyframes maximize {
-            from { width: 80%; height: calc(100vh - 100px); top: 50%; left: 50%; transform: translate(-50%, -50%); border-radius: 10px; }
-            to { width: 100%; height: 100%; top: 0; left: 0; transform: none; border-radius: 0; }
-        }
-        @keyframes restore {
-            from { width: 100%; height: 100%; top: 0; left: 0; transform: none; border-radius: 0; }
-            to { width: 80%; height: calc(100vh - 100px); top: 50%; left: 50%; transform: translate(-50%, -50%); border-radius: 10px; }
+        .dropdown-menu {
+            right: 0;
+            left: auto; /* Align dropdown to the right */
         }
     </style>
 </head>
 <body>
-    <span class="username">Welcome, {{ current_user.username.split('@')[0] }}!</span>
-    <div class="text-center dashboard-heading">
-        <a href="{{ url_for('logout') }}" class="btn btn-warning logout-btn">
-            <i class="fas fa-power-off"></i> Logout
-        </a>
+    <div class="toast" id="toast" style="display: none;">Hello</div>
+
+    <div class="header">
+        <img src="https://via.placeholder.com/50" alt="Logo">
     </div>
-    <div class="container-fluid bg-light custom-container">
-        <div class="row">
+
+    <nav class="navbar navbar-expand-lg navbar-light">
+        <a class="navbar-brand" href="#">
+            Dashboard
+        </a>
+        <div class="ml-auto">
+            <div class="dropdown">
+                <button class="btn btn-secondary dropdown-toggle" type="button" id="profileDropdown" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                    Profile <i class="fas fa-user"></i>
+                </button>
+                <div class="dropdown-menu" aria-labelledby="profileDropdown">
+                    <a class="dropdown-item" href="#" onclick="showOverlay('Manage Account')">Manage Account</a>
+                    <div class="dropdown-divider"></div>
+                    <a class="dropdown-item" href="{{ url_for('logout') }}">Logout</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container-fluid custom-container" style="background-color: rgba(120, 120, 120, 0.153); margin-top: 80px;">
+        <div class="row text-center">
             <div class="col-md-6">
                 <label for="fileUpload" class="btn btn-info btn-lg btn-block custom-btn">
                     Upload Data
-                    <input type="file" id="fileUpload" name="fileUpload" style="display: none;">
+                    <input type="file" id="fileUpload" name="fileUpload" style="display: none;" onchange="handleFileUpload(event)">
                 </label>
                 <a href="#" class="btn btn-secondary btn-lg btn-block custom-btn" onclick="showOverlay('Train')">Train the data</a>
             </div>
@@ -174,115 +156,77 @@
                 <a href="#" class="btn btn-danger btn-lg btn-block custom-btn" onclick="showPreviewData()">Preview Data</a>
             </div>
         </div>
-        <div id="overlay" class="overlay">
-            <div class="overlay-content">
-                <div class="overlay-header">
-                    <h3 id="overlay-text">Overlay Title</h3>
-                    <div class="window-controls">
-                        <span class="control-btn" onclick="minimizeOverlay()"><i class="fas fa-window-minimize"></i></span>
-                        <span class="control-btn" onclick="maximizeOverlay()"><i class="fas fa-window-maximize"></i></span>
-                        <span class="control-btn" onclick="hideOverlay()"><i class="fas fa-times"></i></span>
-                    </div>
-                </div>
-                <form id="dataPredictionForm">
-                    <div id="predictionInputs" style="display: none;">
-                        <div class="form-group">
-                            <label for="startDate">Start Date:</label>
-                            <input type="month" class="form-control" id="startDate" name="startDate">
-                        </div>
-                        <div class="form-group">
-                            <label for="endDate">End Date:</label>
-                            <input type="month" class="form-control" id="endDate" name="endDate">
-                        </div>
-                        <div class="form-group">
-                            <label for="element">Element:</label>
-                            <select class="form-control" id="element" name="element">
-                                <option value="aluminium">Aluminium</option>
-                                <option value="chromium">Chromium</option>
-                                <option value="cobalt">Cobalt</option>
-                                <option value="copper">Copper</option>
-                                <option value="lead">Lead</option>
-                                <option value="manganese">Manganese</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div id="trainInputs" style="display: none;">
-                        <div class="form-group">
-                            <label for="trainData">Train Data:</label>
-                            <input type="text" class="form-control" id="trainData" name="trainData">
-                        </div>
-                    </div>
-                </form>
-                <div class="overlay-footer">
-                    <button type="button" class="btn btn-primary" onclick="processForm()">Submit</button>
-                    <button type="button" class="btn btn-danger" onclick="hideOverlay()">Cancel</button>
+    </div>
+
+    <div id="overlay" class="overlay">
+        <div class="overlay-content">
+            <div class="overlay-header">
+                <h3 id="overlay-text">Overlay Title</h3>
+                <div>
+                    <button class="minimize-btn" onclick="minimizeOverlay()">🔽</button>
+                    <button class="maximize-btn" onclick="maximizeOverlay()">🔼</button>
+                    <button class="close-btn" onclick="hideOverlay()">×</button>
                 </div>
             </div>
+            <span class="username text-center d-block mb-2">Welcome, {{ current_user.username.split('@')[0] }}!</span>
+            <form id="dataPredictionForm">
+                <div id="predictionInputs" style="display: none;">
+                    <div class="form-group">
+                        <label for="startDate">Start Date:</label>
+                        <input type="month" class="form-control" id="startDate" name="startDate" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="endDate">End Date:</label>
+                        <input type="month" class="form-control" id="endDate" name="endDate" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="element">Element:</label>
+                        <select class="form-control" id="element" name="element" required>
+                            <option value="aluminium">Aluminium</option>
+                            <option value="chromium">Chromium</option>
+                            <option value="cobalt">Cobalt</option>
+                            <option value="copper">Copper</option>
+                            <option value="lead">Lead</option>
+                            <option value="nickel">Nickel</option>
+                            <option value="zinc">Zinc</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="overlay-footer">
+                    <button type="button" class="btn btn-danger" onclick="hideOverlay()">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Submit</button>
+                </div>
+            </form>
         </div>
     </div>
 
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
     <script>
-        function showOverlay(type) {
-            const overlay = document.getElementById('overlay');
-            overlay.classList.add('active');
-            document.getElementById('overlay-text').innerText = type;
-            if (type === 'Data Prediction') {
-                document.getElementById('predictionInputs').style.display = 'block';
-                document.getElementById('trainInputs').style.display = 'none';
-            } else if (type === 'Train') {
-                document.getElementById('trainInputs').style.display = 'block';
-                document.getElementById('predictionInputs').style.display = 'none';
-            }
+        function showOverlay(title) {
+            document.getElementById('overlay-text').innerText = title;
+            document.getElementById('overlay').classList.add('active');
+            document.getElementById('predictionInputs').style.display = title === 'Data Prediction' ? 'block' : 'none';
         }
-
         function hideOverlay() {
-            const overlay = document.getElementById('overlay');
-            overlay.classList.remove('active');
-            document.getElementById('dataPredictionForm').reset();
+            document.getElementById('overlay').classList.remove('active');
         }
-
         function minimizeOverlay() {
-            const overlay = document.getElementById('overlay');
-            overlay.classList.add('minimized');
+            document.getElementById('predictionInputs').classList.add('minimized');
         }
-
         function maximizeOverlay() {
-            const overlay = document.getElementById('overlay');
-            overlay.classList.add('maximized');
+            document.getElementById('predictionInputs').classList.remove('minimized');
         }
-
-        $(document).ready(function() {
-            // Function to fetch and display preview data
-            function showPreviewData() {
-                fetch('/preview_data')
-                    .then(response => response.json())
-                    .then(data => {
-                        let html = '<ul>';
-                        data.forEach(item => {
-                            html += `<li>${item.date}: ${item.value}</li>`;
-                        });
-                        html += '</ul>';
-                        $('#dataDisplay').html(html);
-                    })
-                    .catch(error => {
-                        console.error('Error fetching data:', error);
-                        $('#dataDisplay').html('<p>Error fetching data. Please try again later.</p>');
-                    });
+        function handleFileUpload(event) {
+            const file = event.target.files[0];
+            if (file) {
+                alert(`File uploaded: ${file.name}`);
             }
-
-            // Call showPreviewData() to fetch and display data on page load
-            showPreviewData();
-        });
-
-        function processForm() {
-            // Implement form processing logic here
-            alert('Implement form processing logic');
-            hideOverlay();
+        }
+        function showPreviewData() {
+            alert('Previewing Data');
         }
     </script>
-
-    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.4/dist/umd/popper.min.js"></script>
-    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
 </body>
 </html>
